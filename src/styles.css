@@ -1,0 +1,70 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@theme {
+  --font-sans: "Hind Siliguri", "Noto Sans Bengali", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Noto Serif Bengali", "Newsreader", ui-serif, Georgia, serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  --color-background: #0a0a0a;
+  --color-foreground: #f3eee9;
+  --color-card: #121212;
+  --color-card-foreground: #f3eee9;
+  --color-popover: #161010;
+  --color-popover-foreground: #f3eee9;
+  --color-primary: #e11d2a;
+  --color-primary-foreground: #fff7f5;
+  --color-secondary: #1a1212;
+  --color-secondary-foreground: #f3eee9;
+  --color-muted: #181111;
+  --color-muted-foreground: #a09893;
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #fff7f5;
+  --color-border: #2c1c1c;
+  --color-input: #2c1c1c;
+  --color-ring: #e11d2a;
+  --color-chart-1: #e11d2a;
+  --color-chart-2: #c4b8b0;
+  --color-chart-3: #7a5a5a;
+  --color-chart-4: #f3eee9;
+  --color-chart-5: #5c2a2a;
+  --color-overlay: rgb(0 0 0 / 0.72);
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius: 12px;
+
+  --shadow-border: 0 0 0 1px rgb(255 255 255 / 0.07);
+  --shadow-border-hover: 0 0 0 1px rgb(225 29 42 / 0.5);
+
+  --ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    color-scheme: dark;
+  }
+  body {
+    background: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+  }
+  h1, h2, h3 {
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+  ::selection {
+    background: color-mix(in oklab, var(--color-primary) 80%, black);
+    color: var(--color-primary-foreground);
+  }
+}
