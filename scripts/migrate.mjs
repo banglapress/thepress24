@@ -18,7 +18,12 @@ import { dirname, join } from "node:path";
 import pg from "pg";
 import { pendingMigrations } from "./migration-plan.mjs";
 
-const databaseUrl = process.env.DATABASE_URL;
+const databaseUrl =
+  process.env.DATABASE_URL ??
+  process.env.POSTGRES_NON_POOLING_URL ??
+  process.env.POSTGRES_URL_NON_POOLING ??
+  process.env.POSTGRES_PRISMA_URL ??
+  process.env.POSTGRES_URL;
 if (!databaseUrl) {
   console.log(
     "[migrate] DATABASE_URL not set — skipping (the PGLite fallback migrates itself).",
