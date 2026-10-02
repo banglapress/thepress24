@@ -18,44 +18,48 @@ import { dirname, join } from "node:path";
 import pg from "pg";
 import { pendingMigrations } from "./migration-plan.mjs";
 
-function normalizePostgresUrl(value) {
-  if (!value) return undefined;
-  let result = value.trim();
+function getPostgresConfig() {
+  const host = process.env.POSTGRES_HOST?.trim();
+  const user = process.env.POSTGRES_USER?.trim();
+  const password = process.env.POSTGRES_PASSWORD;
+  const database = process.env.POSTGRES_DATABASE?.trim();
+  const rawUrl =
+    process.env.POSTGRES_URL_NON_POOLING?.trim() ??
+    process.env.POSTGRES_URL?.trim() ??
+    process.env.POSTGRES_PRISMA_URL?.trim() ??
+    process.env.POSTGRES_NON_POOLING_URL?.trim() ??
+    process.env.DATABASE_URL?.trim();
 
-  const schemeEnd = result.indexOf("://");
-  const authorityEnd = schemeEnd >= 0 ? result.indexOf("/", schemeEnd + 3) : -1;
-  const queryIndex = authorityEnd >= 0 ? result.indexOf("?", authorityEnd) : -1;
-  if (authorityEnd >= 0) {
-    const pathEnd = queryIndex >= 0 ? queryIndex : result.length;
-    const path = result.slice(authorityEnd, pathEnd);
-    const ampIndex = path.indexOf("&");
-    if (ampIndex >= 0) {
-      result =
-        result.slice(0, authorityEnd) +
-        path.slice(0, ampIndex) +
-        "?" +
-        path.slice(ampIndex + 1) +
-        (queryIndex >= 0 ? "&" + result.slice(queryIndex + 1) : "");
-    }
+  // Vercel Marketplace → Supabase exposes individual connection fields.
+  // Use them directly so pooler metadata such as "supa=base-pooler.x"
+  // can never become part of the PostgreSQL database name.
+  if (host && user && password && database) {
+    const portMatch = rawUrl?.match(/^[a-z][a-z0-9+.-]*:\/\/[^/]+:(\d+)\//i);
+    return {
+      host,
+      user,
+      password,
+      database,
+      port: portMatch ? Number(portMatch[1]) : 5432,
+      ssl: { rejectUnauthorized: false },
+      max: 1,
+    };
   }
 
-  if (
-    /[?&]sslmode=require(?:&|$)/.test(result) &&
-    !/[?&]uselibpqcompat=/.test(result)
-  ) {
-    result += result.includes("?") ? "&uselibpqcompat=true" : "?uselibpqcompat=true";
+  // Manual fallback for setups that provide only a connection string.
+  if (rawUrl) {
+    return {
+      connectionString: rawUrl.replace(/([?&])sslmode=[^&]*/i, "").replace(/[?&]$/, ""),
+      max: 1,
+      ssl: { rejectUnauthorized: false },
+    };
   }
 
-  return result;
+  return undefined;
 }
 
-const databaseUrl = normalizePostgresUrl(
-  process.env.POSTGRES_URL ??
-  process.env.POSTGRES_PRISMA_URL ??
-  process.env.POSTGRES_URL_NON_POOLING ??
-  process.env.POSTGRES_NON_POOLING_URL ??
-  process.env.DATABASE_URL);
-if (!databaseUrl) {
+const postgresConfig = getPostgresConfig();
+if (!postgresConfig) {
   console.log(
     "[migrate] PostgreSQL connection not set — skipping (the PGLite fallback migrates itself).",
   );
@@ -78,12 +82,7 @@ async function main() {
     return;
   }
 
-  const connectionString = databaseUrl.replace(/([?&])sslmode=[^&]*/i, "").replace(/[?&]$/, "");
-  const pool = new pg.Pool({
-    connectionString,
-    max: 1,
-    ssl: { rejectUnauthorized: false },
-  });
+  const pool = new pg.Pool(postgresConfig);
   const client = await pool.connect();
   try {
     await client.query(
