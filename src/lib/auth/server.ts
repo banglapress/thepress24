@@ -28,10 +28,13 @@ const env = (key: string): string | undefined => {
 
 const authDisabled = env("VITE_AUTH_ENABLED") === "false";
 function getPostgresConfig() {
-  const host = env("POSTGRES_HOST");
+  const configuredHost = env("POSTGRES_HOST");
   const user = env("POSTGRES_USER");
   const password = process.env.POSTGRES_PASSWORD;
   const database = env("POSTGRES_DATABASE");
+  const urlHostMatch = rawUrl?.match(/^[a-z][a-z0-9+.-]*:\/\/(?:[^@/]+@)?([^/:?#]+)(?::(\d+))?/i);
+  const host = urlHostMatch?.[1] ?? configuredHost;
+  const portFromUrl = urlHostMatch?.[2];
   const rawUrl =
     env("POSTGRES_URL") ??
     env("POSTGRES_PRISMA_URL") ??
@@ -40,13 +43,12 @@ function getPostgresConfig() {
 
   // Prefer Vercel Marketplace → Supabase's individual connection fields.
   if (host && user && password && database) {
-    const portMatch = rawUrl?.match(/^[a-z][a-z0-9+.-]*:\/\/[^/]+:(\d+)\//i);
     return {
       host,
       user,
       password,
       database,
-      port: portMatch ? Number(portMatch[1]) : 5432,
+      port: portFromUrl ? Number(portFromUrl) : 5432,
       ssl: { rejectUnauthorized: false },
       max: 1,
     };
