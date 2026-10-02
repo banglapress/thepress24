@@ -7,8 +7,8 @@ export type DbSource = "postgres" | "pglite";
 // "unset" — otherwise production would silently run on the PGLite fallback.
 const rawDatabaseUrl =
   typeof process !== "undefined"
-    ? process.env.POSTGRES_PRISMA_URL ??
-      process.env.POSTGRES_URL ??
+    ? process.env.POSTGRES_URL ??
+      process.env.POSTGRES_PRISMA_URL ??
       process.env.POSTGRES_URL_NON_POOLING ??
       process.env.DATABASE_URL
     : undefined;
