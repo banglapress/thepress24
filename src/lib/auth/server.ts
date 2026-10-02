@@ -104,13 +104,18 @@ const LOCAL_DEV_ORIGINS: string[] = [
   "http://[::1]:8080",
 ];
 const baseURL = explicitBaseURL ?? {
-  // Include loopback hosts so dynamic baseURL resolves for local email/password
-  // (not only the preview wildcard).
-  allowedHosts: [...previewAllowedHosts, "localhost", "127.0.0.1", "[::1]"],
+  // Vercel preview/production aliases use *.vercel.app. Custom domains should
+  // set BETTER_AUTH_URL explicitly; unknown hosts must fail closed.
+  allowedHosts: [
+    ...previewAllowedHosts,
+    "*.vercel.app",
+    "localhost",
+    "127.0.0.1",
+    "[::1]",
+  ],
   // `auto` → trust both http:// and https:// expansions of allowedHosts
-  // (preview is https; local dev is http).
+  // (Vercel is https; local dev is http).
   protocol: "auto" as const,
-  fallback: "http://localhost:8080",
 };
 
 // Origins Better Auth accepts on credentialed POSTs (sign-up/sign-in, etc.).
