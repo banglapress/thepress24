@@ -63,8 +63,11 @@ const trustedOrigins = [
 
 const database = databaseUrl
   ? new Pool({
-      connectionString: databaseUrl,
+      connectionString: databaseUrl
+        .replace(/([?&])sslmode=[^&]*/i, "")
+        .replace(/[?&]$/, ""),
       max: 1,
+      ssl: { rejectUnauthorized: false },
     })
   : {
       dialect: pgliteDialect(() => getPglite()),
