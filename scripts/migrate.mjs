@@ -47,7 +47,12 @@ async function main() {
     return;
   }
 
-  const pool = new pg.Pool({ connectionString: databaseUrl, max: 1 });
+  const connectionString = databaseUrl.replace(/([?&])sslmode=[^&]*/i, "").replace(/[?&]$/, "");
+  const pool = new pg.Pool({
+    connectionString,
+    max: 1,
+    ssl: { rejectUnauthorized: false },
+  });
   const client = await pool.connect();
   try {
     await client.query(
