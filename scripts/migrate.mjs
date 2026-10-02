@@ -20,7 +20,7 @@ import { pendingMigrations } from "./migration-plan.mjs";
 
 function getPostgresConfig() {
   const configuredHost = process.env.POSTGRES_HOST?.trim();
-  const user = process.env.POSTGRES_USER?.trim();
+  const configuredUser = process.env.POSTGRES_USER?.trim();
   const password = process.env.POSTGRES_PASSWORD;
   const database = process.env.POSTGRES_DATABASE?.trim();
   const rawUrl =
@@ -29,9 +29,11 @@ function getPostgresConfig() {
     process.env.POSTGRES_URL_NON_POOLING?.trim() ??
     process.env.POSTGRES_NON_POOLING_URL?.trim() ??
     process.env.DATABASE_URL?.trim();
-  const urlHostMatch = rawUrl?.match(/^[a-z][a-z0-9+.-]*:\/\/(?:[^@/]+@)?([^/:?#]+)(?::(\d+))?/i);
-  const host = urlHostMatch?.[1] ?? configuredHost;
-  const portFromUrl = urlHostMatch?.[2];
+  const urlMatch = rawUrl?.match(/^[a-z][a-z0-9+.-]*:\/\/([^:@/]+):[^@]*@([^/:?#]+)(?::(\d+))?/i);
+  const urlUser = urlMatch?.[1];
+  const host = urlMatch?.[2] ?? configuredHost;
+  const portFromUrl = urlMatch?.[3];
+  const user = urlUser ?? configuredUser;
 
   // Vercel Marketplace → Supabase exposes individual connection fields.
   // Use them directly so pooler metadata such as "supa=base-pooler.x"
