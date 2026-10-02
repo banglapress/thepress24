@@ -32,16 +32,18 @@ function getPostgresConfig() {
   const user = env("POSTGRES_USER");
   const password = process.env.POSTGRES_PASSWORD;
   const database = env("POSTGRES_DATABASE");
-  const urlHostMatch = rawUrl?.match(/^[a-z][a-z0-9+.-]*:\/\/(?:[^@/]+@)?([^/:?#]+)(?::(\d+))?/i);
-  const host = urlHostMatch?.[1] ?? configuredHost;
-  const portFromUrl = urlHostMatch?.[2];
   const rawUrl =
     env("POSTGRES_URL") ??
     env("POSTGRES_PRISMA_URL") ??
     env("POSTGRES_URL_NON_POOLING") ??
     env("DATABASE_URL");
+  const urlHostMatch = rawUrl?.match(/^[a-z][a-z0-9+.-]*:\/\/(?:[^@/]+@)?([^/:?#]+)(?::(\d+))?/i);
+  const host = urlHostMatch?.[1] ?? configuredHost;
+  const portFromUrl = urlHostMatch?.[2];
 
-  // Prefer Vercel Marketplace → Supabase's individual connection fields.
+  // Prefer the host/port from the Vercel Marketplace Supabase pooler URL.
+  // POSTGRES_HOST can resolve to an IPv6 direct database address that is not
+  // reachable from some Vercel build/runtime environments.
   if (host && user && password && database) {
     return {
       host,
