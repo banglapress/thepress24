@@ -1,4 +1,4 @@
-import { getRequest } from "@tanstack/react-start/server";
+import { getRequestHeaders } from "@tanstack/react-start/server";
 import { auth, authConfigured } from "./server";
 
 /**
@@ -62,9 +62,7 @@ export async function getSessionUser(
   bearerToken?: string,
 ): Promise<VerifiedUser | null> {
   if (!authConfigured) return null;
-  const request = getRequest();
-  if (!request) return null;
-  let headers = request.headers;
+  let headers = await getRequestHeaders();
   if (bearerToken) {
     headers = new Headers(request.headers);
     headers.set("Authorization", `Bearer ${bearerToken}`);
