@@ -2,7 +2,28 @@
 
 বাংলা নিউজরুমের গেটেড রানডাউন। কাজ শুরু হবে সরাসরি স্ক্রিপ্ট লেখা থেকে; আলাদা আইডিয়া-পিচ ধাপ নেই।
 
-## ডেস্ক
+## Authentication ও database
+
+The Press24 এখন **Grok authentication-এর ওপর নির্ভর করে না**।
+
+- Authentication: Better Auth
+- Production database: Supabase PostgreSQL
+- Hosting: Vercel
+- Account, session, password credential এবং newsroom data একই Supabase PostgreSQL database-এ থাকবে।
+- Supabase Auth আলাদা করে ব্যবহার করা হচ্ছে না; Better Auth তার PostgreSQL database হিসেবে Supabase ব্যবহার করছে। Better Auth PostgreSQL সরাসরি support করে। 
+
+Vercel-এ এই environment variables দিতে হবে:
+
+```
+VITE_AUTH_ENABLED=true
+DATABASE_URL=<Supabase Transaction Pooler connection string>
+BETTER_AUTH_URL=https://thepress24.vercel.app
+BETTER_AUTH_SECRET=<strong random secret>
+```
+
+Supabase Dashboard → **Connect** থেকে serverless-এর জন্য Transaction Pooler connection string নেওয়া উচিত। Connection string-এ SSL ব্যবহার করুন। Supabase serverless/edge workloads-এর জন্য transaction pooling path দেয়। 
+
+## Desk
 
 স্ক্রিপ্ট রাইটার, স্ক্রিপ্ট এডিটর, প্রোডিউসার, প্রেজেন্টার, ভিডিও এডিটর, ভিডিও রিভিউ এবং সোশ্যাল ম্যানেজার।
 
