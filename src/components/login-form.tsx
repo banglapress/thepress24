@@ -1,21 +1,9 @@
 import { useState } from "react";
-import { GROK_PROVIDERS, authClient, authEnabled, signIn } from "@/lib/auth/client";
+import { authClient } from "@/lib/auth/client";
 import { APP_NAME, APP_NAME_BN, APP_TAGLINE } from "@/lib/press/catalog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
-function persistAuthToken(data: unknown) {
-  if (!data || typeof data !== "object") return;
-  const token = (data as { token?: unknown }).token;
-  if (typeof token === "string" && token) {
-    try {
-      window.sessionStorage.setItem("grok-auth.bearer-token", token);
-    } catch {
-      /* ignore */
-    }
-  }
-}
 
 export function LoginForm() {
   const [mode, setMode] = useState<"in" | "up">("in");
@@ -37,14 +25,12 @@ export function LoginForm() {
           name: name.trim() || email.trim().split("@")[0],
         });
         if (err) throw err;
-        persistAuthToken(data);
       } else {
         const { error: err, data } = await authClient.signIn.email({
           email: email.trim(),
           password,
         });
         if (err) throw err;
-        persistAuthToken(data);
       }
       await authClient.getSession();
       window.location.assign("/");
@@ -156,22 +142,6 @@ export function LoginForm() {
             {mode === "up" ? "অ্যাকাউন্ট খুলুন" : "ঢুকুন"}
           </Button>
         </form>
-        {authEnabled ? (
-          <div className="space-y-2">
-            <p className="text-center text-xs text-muted-foreground">অথবা</p>
-            {GROK_PROVIDERS.map((provider) => (
-              <Button
-                key={provider.providerId}
-                type="button"
-                variant="outline"
-                className="w-full"
-                onClick={() => signIn(provider.providerId, { callbackURL: "/" })}
-              >
-                {provider.label} দিয়ে চালিয়ে যান
-              </Button>
-            ))}
-          </div>
-        ) : null}
       </div>
     </main>
   );
