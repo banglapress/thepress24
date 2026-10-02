@@ -27,42 +27,43 @@ const env = (key: string): string | undefined => {
 };
 
 const authDisabled = env("VITE_AUTH_ENABLED") === "false";
-function normalizePostgresUrl(value: string | undefined): string | undefined {
-  if (!value) return undefined;
-  let result = value.trim();
+function getPostgresConfig() {
+  const host = env("POSTGRES_HOST");
+  const user = env("POSTGRES_USER");
+  const password = process.env.POSTGRES_PASSWORD;
+  const database = env("POSTGRES_DATABASE");
+  const rawUrl =
+    env("POSTGRES_URL") ??
+    env("POSTGRES_PRISMA_URL") ??
+    env("POSTGRES_URL_NON_POOLING") ??
+    env("DATABASE_URL");
 
-  const schemeEnd = result.indexOf("://");
-  const authorityEnd = schemeEnd >= 0 ? result.indexOf("/", schemeEnd + 3) : -1;
-  const queryIndex = authorityEnd >= 0 ? result.indexOf("?", authorityEnd) : -1;
-  if (authorityEnd >= 0) {
-    const pathEnd = queryIndex >= 0 ? queryIndex : result.length;
-    const path = result.slice(authorityEnd, pathEnd);
-    const ampIndex = path.indexOf("&");
-    if (ampIndex >= 0) {
-      result =
-        result.slice(0, authorityEnd) +
-        path.slice(0, ampIndex) +
-        "?" +
-        path.slice(ampIndex + 1) +
-        (queryIndex >= 0 ? "&" + result.slice(queryIndex + 1) : "");
-    }
+  // Prefer Vercel Marketplace → Supabase's individual connection fields.
+  if (host && user && password && database) {
+    const portMatch = rawUrl?.match(/^[a-z][a-z0-9+.-]*:\/\/[^/]+:(\d+)\//i);
+    return {
+      host,
+      user,
+      password,
+      database,
+      port: portMatch ? Number(portMatch[1]) : 5432,
+      ssl: { rejectUnauthorized: false },
+      max: 1,
+    };
   }
 
-  if (
-    /[?&]sslmode=require(?:&|$)/.test(result) &&
-    !/[?&]uselibpqcompat=/.test(result)
-  ) {
-    result += result.includes("?") ? "&uselibpqcompat=true" : "?uselibpqcompat=true";
+  if (rawUrl) {
+    return {
+      connectionString: rawUrl.replace(/([?&])sslmode=[^&]*/i, "").replace(/[?&]$/, ""),
+      ssl: { rejectUnauthorized: false },
+      max: 1,
+    };
   }
 
-  return result;
+  return undefined;
 }
 
-const databaseUrl = normalizePostgresUrl(
-  env("POSTGRES_URL") ??
-  env("POSTGRES_PRISMA_URL") ??
-  env("POSTGRES_URL_NON_POOLING") ??
-  env("DATABASE_URL"));
+const postgresConfig = getPostgresConfig();
 const explicitBaseURL = env("BETTER_AUTH_URL");
 
 const globalAuthRef = globalThis as typeof globalThis & {
@@ -92,14 +93,8 @@ const trustedOrigins = [
   ...LOCAL_DEV_ORIGINS,
 ];
 
-const database = databaseUrl
-  ? new Pool({
-      connectionString: databaseUrl
-        .replace(/([?&])sslmode=[^&]*/i, "")
-        .replace(/[?&]$/, ""),
-      max: 1,
-      ssl: { rejectUnauthorized: false },
-    })
+const database = postgresConfig
+  ? new Pool(postgresConfig)
   : {
       dialect: pgliteDialect(() => getPglite()),
       type: "postgres" as const,
