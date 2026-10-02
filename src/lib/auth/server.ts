@@ -100,7 +100,7 @@ const database = postgresConfig
       type: "postgres" as const,
     };
 
-if (!databaseUrl && !authDisabled) {
+if (!postgresConfig && !authDisabled) {
   console.warn(
     "[auth] DATABASE_URL is not configured. Deployed accounts will use the " +
       "temporary PGLite fallback and will not have durable persistence. " +
