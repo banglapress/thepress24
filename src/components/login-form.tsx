@@ -36,20 +36,37 @@ export function LoginForm() {
           password,
           name: name.trim() || email.trim().split("@")[0],
         });
-        if (err) throw new Error(err.message ?? "অ্যাকাউন্ট হয়নি।");
+        if (err) throw err;
         persistAuthToken(data);
       } else {
         const { error: err, data } = await authClient.signIn.email({
           email: email.trim(),
           password,
         });
-        if (err) throw new Error(err.message ?? "লগইন হয়নি।");
+        if (err) throw err;
         persistAuthToken(data);
       }
       await authClient.getSession();
       window.location.assign("/");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "লগইন হয়নি।");
+      const e = err as {
+        message?: unknown;
+        code?: unknown;
+        status?: unknown;
+      };
+      const detail =
+        typeof e.code === "string" && e.code
+          ? `[${e.code}]`
+          : typeof e.status === "number"
+            ? `[${e.status}]`
+            : "";
+      const message =
+        typeof e.message === "string" && e.message
+          ? e.message
+          : mode === "up"
+            ? "অ্যাকাউন্ট খোলা যায়নি।"
+            : "লগইন করা যায়নি।";
+      setError(`${detail} ${message}`.trim());
       setBusy(false);
     }
   }
