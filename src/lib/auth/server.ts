@@ -27,7 +27,11 @@ const env = (key: string): string | undefined => {
 };
 
 const authDisabled = env("VITE_AUTH_ENABLED") === "false";
-const databaseUrl = env("DATABASE_URL");
+const databaseUrl =
+  env("DATABASE_URL") ??
+  env("POSTGRES_PRISMA_URL") ??
+  env("POSTGRES_URL") ??
+  env("POSTGRES_URL_NON_POOLING");
 const explicitBaseURL = env("BETTER_AUTH_URL");
 
 const globalAuthRef = globalThis as typeof globalThis & {
