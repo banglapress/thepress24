@@ -115,15 +115,31 @@ const baseURL = explicitBaseURL ?? {
 
 // Origins Better Auth accepts on credentialed POSTs (sign-up/sign-in, etc.).
 // Missing entries here surface as FORBIDDEN "Invalid origin".
-const trustedOrigins: string[] = explicitBaseURL
-  ? [explicitBaseURL, ...LOCAL_DEV_ORIGINS]
-  : [
-      // Host wildcards (matched against Origin's host)
-      ...previewAllowedHosts,
-      // Full-origin wildcards (matched against Origin)
-      ...previewAllowedHosts.flatMap((host) => [`https://${host}`, `http://${host}`]),
-      ...LOCAL_DEV_ORIGINS,
-    ];
+//
+// Deployed Vercel/custom domains can differ from BETTER_AUTH_URL or from the
+// preview hostname. Better Auth supports a dynamic trustedOrigins function;
+// for a request coming from this app, trusting the request URL's origin still
+// blocks cross-site requests because the browser's Origin header will differ.
+const trustedOrigins = async (request?: Request): Promise<string[]> => {
+  const origins = new Set<string>([
+    ...(explicitBaseURL ? [explicitBaseURL] : []),
+    ...LOCAL_DEV_ORIGINS,
+    ...previewAllowedHosts.flatMap((host) => [
+      `https://${host}`,
+      `http://${host}`,
+    ]),
+  ]);
+
+  if (request) {
+    try {
+      origins.add(new URL(request.url).origin);
+    } catch {
+      // Keep the explicit allowlist when the request URL cannot be parsed.
+    }
+  }
+
+  return [...origins];
+};
 
 const databaseUrl = env("DATABASE_URL");
 
