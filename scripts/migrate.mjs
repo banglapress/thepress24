@@ -35,14 +35,14 @@ function normalizePostgresUrl(value) {
 }
 
 const databaseUrl = normalizePostgresUrl(
-  process.env.DATABASE_URL ??
-  process.env.POSTGRES_NON_POOLING_URL ??
   process.env.POSTGRES_URL_NON_POOLING ??
+  process.env.POSTGRES_NON_POOLING_URL ??
   process.env.POSTGRES_PRISMA_URL ??
-  process.env.POSTGRES_URL);
+  process.env.POSTGRES_URL ??
+  process.env.DATABASE_URL);
 if (!databaseUrl) {
   console.log(
-    "[migrate] DATABASE_URL not set — skipping (the PGLite fallback migrates itself).",
+    "[migrate] PostgreSQL connection not set — skipping (the PGLite fallback migrates itself).",
   );
   process.exit(0);
 }
