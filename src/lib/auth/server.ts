@@ -27,11 +27,27 @@ const env = (key: string): string | undefined => {
 };
 
 const authDisabled = env("VITE_AUTH_ENABLED") === "false";
-const databaseUrl =
+function normalizePostgresUrl(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  try {
+    const url = new URL(value);
+    if (url.searchParams.get("sslmode") === "require" && !url.searchParams.has("uselibpqcompat")) {
+      // pg 8.16+ can interpret sslmode=require as verify-full unless libpq compatibility
+      // is explicitly enabled. Supabase/Vercel pooler URLs are intended for encrypted
+      // connections and should use the legacy require semantics here.
+      url.searchParams.set("uselibpqcompat", "true");
+    }
+    return url.toString();
+  } catch {
+    return value;
+  }
+}
+
+const databaseUrl = normalizePostgresUrl(
   env("POSTGRES_PRISMA_URL") ??
   env("POSTGRES_URL") ??
   env("POSTGRES_URL_NON_POOLING") ??
-  env("DATABASE_URL");
+  env("DATABASE_URL"));
 const explicitBaseURL = env("BETTER_AUTH_URL");
 
 const globalAuthRef = globalThis as typeof globalThis & {
