@@ -18,7 +18,7 @@ import { dirname, join } from "node:path";
 import pg from "pg";
 import { pendingMigrations } from "./migration-plan.mjs";
 
-function normalizePostgresUrl(value: string | undefined): string | undefined {
+function normalizePostgresUrl(value) {
   if (!value) return undefined;
   try {
     const url = new URL(value);
