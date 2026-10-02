@@ -92,60 +92,44 @@ export const authConfigured =
 // preview allowlist, which makes the OAuth `redirect_uri` the concrete preview URL
 // the broker's preview client accepts.
 const explicitBaseURL = env("BETTER_AUTH_URL");
-// Explicit `string[]` (not a readonly tuple) — Better Auth's DynamicBaseURLConfig
-// requires a mutable `allowedHosts: string[]`.
-const previewAllowedHosts: string[] = [...PREVIEW_ALLOWED_HOSTS];
-// Local `npm run dev` (port 8080 contract). Browsers may send Origin as any of
-// these for the same server — trusting only `localhost` rejects `127.0.0.1` and
-// breaks email/password with "Invalid origin".
-const LOCAL_DEV_ORIGINS: string[] = [
-  "http://localhost:8080",
-  "http://127.0.0.1:8080",
-  "http://[::1]:8080",
+
+const explicitHost = (() => {
+  if (!explicitBaseURL) return undefined;
+  try {
+    return new URL(explicitBaseURL).host;
+  } catch {
+    return undefined;
+  }
+})();
+
+// Vercel preview/production aliases are dynamic, so use Better Auth's
+// allowlisted dynamic baseURL instead of locking auth to one deployment URL.
+// A custom production domain can be supplied through BETTER_AUTH_URL.
+const allowedHosts: string[] = [
+  ...PREVIEW_ALLOWED_HOSTS,
+  "*.vercel.app",
+  "localhost",
+  "127.0.0.1",
+  "[::1]",
+  ...(explicitHost ? [explicitHost] : []),
 ];
-const baseURL = explicitBaseURL ?? {
-  // Vercel preview/production aliases use *.vercel.app. Custom domains should
-  // set BETTER_AUTH_URL explicitly; unknown hosts must fail closed.
-  allowedHosts: [
-    ...previewAllowedHosts,
-    "*.vercel.app",
-    "localhost",
-    "127.0.0.1",
-    "[::1]",
-  ],
-  // `auto` → trust both http:// and https:// expansions of allowedHosts
-  // (Vercel is https; local dev is http).
+
+const baseURL = {
+  allowedHosts,
   protocol: "auto" as const,
 };
 
-// Origins Better Auth accepts on credentialed POSTs (sign-up/sign-in, etc.).
-// Missing entries here surface as FORBIDDEN "Invalid origin".
-//
-// Deployed Vercel/custom domains can differ from BETTER_AUTH_URL or from the
-// preview hostname. Better Auth supports a dynamic trustedOrigins function;
-// for a request coming from this app, trusting the request URL's origin still
-// blocks cross-site requests because the browser's Origin header will differ.
-const trustedOrigins = async (request?: Request): Promise<string[]> => {
-  const origins = new Set<string>([
-    ...(explicitBaseURL ? [explicitBaseURL] : []),
-    ...LOCAL_DEV_ORIGINS,
-    ...previewAllowedHosts.flatMap((host) => [
-      `https://${host}`,
-      `http://${host}`,
-    ]),
-  ]);
-
-  if (request) {
-    try {
-      origins.add(new URL(request.url).origin);
-    } catch {
-      // Keep the explicit allowlist when the request URL cannot be parsed.
-    }
-  }
-
-  return [...origins];
-};
-
+// The dynamic baseURL allowlist is also trusted by Better Auth. Keep explicit
+// origins for local development and a configured custom domain.
+const trustedOrigins: string[] = [
+  ...LOCAL_DEV_ORIGINS,
+  ...PREVIEW_ALLOWED_HOSTS.flatMap((host) => [
+    `https://${host}`,
+    `http://${host}`,
+  ]),
+  "*.vercel.app",
+  ...(explicitBaseURL ? [explicitBaseURL] : []),
+];
 const databaseUrl = env("DATABASE_URL");
 
 // Static broker OAuth endpoints (skip OIDC discovery on every sign-in / callback).
