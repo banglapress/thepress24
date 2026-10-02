@@ -18,12 +18,28 @@ import { dirname, join } from "node:path";
 import pg from "pg";
 import { pendingMigrations } from "./migration-plan.mjs";
 
-const databaseUrl =
+function normalizePostgresUrl(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  try {
+    const url = new URL(value);
+    if (url.searchParams.get("sslmode") === "require" && !url.searchParams.has("uselibpqcompat")) {
+      // pg 8.16+ can interpret sslmode=require as verify-full unless libpq compatibility
+      // is explicitly enabled. Supabase/Vercel pooler URLs are intended for encrypted
+      // connections and should use the legacy require semantics here.
+      url.searchParams.set("uselibpqcompat", "true");
+    }
+    return url.toString();
+  } catch {
+    return value;
+  }
+}
+
+const databaseUrl = normalizePostgresUrl(
   process.env.DATABASE_URL ??
   process.env.POSTGRES_NON_POOLING_URL ??
   process.env.POSTGRES_URL_NON_POOLING ??
   process.env.POSTGRES_PRISMA_URL ??
-  process.env.POSTGRES_URL;
+  process.env.POSTGRES_URL);
 if (!databaseUrl) {
   console.log(
     "[migrate] DATABASE_URL not set — skipping (the PGLite fallback migrates itself).",
