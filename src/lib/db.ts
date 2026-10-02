@@ -14,18 +14,33 @@ const rawDatabaseUrl =
     : undefined;
 function normalizePostgresUrl(value: string | undefined): string | undefined {
   if (!value) return undefined;
-  try {
-    const url = new URL(value);
-    if (url.searchParams.get("sslmode") === "require" && !url.searchParams.has("uselibpqcompat")) {
-      // pg 8.16+ can interpret sslmode=require as verify-full unless libpq compatibility
-      // is explicitly enabled. Supabase/Vercel pooler URLs are intended for encrypted
-      // connections and should use the legacy require semantics here.
-      url.searchParams.set("uselibpqcompat", "true");
+  let result = value.trim();
+
+  const schemeEnd = result.indexOf("://");
+  const authorityEnd = schemeEnd >= 0 ? result.indexOf("/", schemeEnd + 3) : -1;
+  const queryIndex = authorityEnd >= 0 ? result.indexOf("?", authorityEnd) : -1;
+  if (authorityEnd >= 0) {
+    const pathEnd = queryIndex >= 0 ? queryIndex : result.length;
+    const path = result.slice(authorityEnd, pathEnd);
+    const ampIndex = path.indexOf("&");
+    if (ampIndex >= 0) {
+      result =
+        result.slice(0, authorityEnd) +
+        path.slice(0, ampIndex) +
+        "?" +
+        path.slice(ampIndex + 1) +
+        (queryIndex >= 0 ? "&" + result.slice(queryIndex + 1) : "");
     }
-    return url.toString();
-  } catch {
-    return value;
   }
+
+  if (
+    /[?&]sslmode=require(?:&|$)/.test(result) &&
+    !/[?&]uselibpqcompat=/.test(result)
+  ) {
+    result += result.includes("?") ? "&uselibpqcompat=true" : "?uselibpqcompat=true";
+  }
+
+  return result;
 }
 
 const databaseUrl = normalizePostgresUrl(
