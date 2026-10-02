@@ -19,10 +19,13 @@ import pg from "pg";
 import { pendingMigrations } from "./migration-plan.mjs";
 
 function getPostgresConfig() {
-  const host = process.env.POSTGRES_HOST?.trim();
+  const configuredHost = process.env.POSTGRES_HOST?.trim();
   const user = process.env.POSTGRES_USER?.trim();
   const password = process.env.POSTGRES_PASSWORD;
   const database = process.env.POSTGRES_DATABASE?.trim();
+  const urlHostMatch = rawUrl?.match(/^[a-z][a-z0-9+.-]*:\/\/(?:[^@/]+@)?([^/:?#]+)(?::(\d+))?/i);
+  const host = urlHostMatch?.[1] ?? configuredHost;
+  const portFromUrl = urlHostMatch?.[2];
   const rawUrl =
     process.env.POSTGRES_URL_NON_POOLING?.trim() ??
     process.env.POSTGRES_URL?.trim() ??
@@ -34,13 +37,12 @@ function getPostgresConfig() {
   // Use them directly so pooler metadata such as "supa=base-pooler.x"
   // can never become part of the PostgreSQL database name.
   if (host && user && password && database) {
-    const portMatch = rawUrl?.match(/^[a-z][a-z0-9+.-]*:\/\/[^/]+:(\d+)\//i);
     return {
       host,
       user,
       password,
       database,
-      port: portMatch ? Number(portMatch[1]) : 5432,
+      port: portFromUrl ? Number(portFromUrl) : 5432,
       ssl: { rejectUnauthorized: false },
       max: 1,
     };
