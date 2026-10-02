@@ -14,10 +14,10 @@ import { auth, authConfigured } from "./server";
 /** True when a real database is configured server-side. */
 const databaseConfigured = Boolean(
   (
-    process.env.DATABASE_URL ??
     process.env.POSTGRES_PRISMA_URL ??
     process.env.POSTGRES_URL ??
-    process.env.POSTGRES_URL_NON_POOLING
+    process.env.POSTGRES_URL_NON_POOLING ??
+    process.env.DATABASE_URL
   )?.trim(),
 );
 
