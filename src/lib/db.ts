@@ -85,15 +85,16 @@ function toSql(run: Run): Sql {
   return sql;
 }
 
-function createNeonSql(): Promise<Sql> {
+function createPostgresSql(): Promise<Sql> {
   globalRef.__pgSqlPromise__ ??= (async () => {
-    // Regular Postgres driver: node-postgres (`pg`) — works directly with Neon's
-    // pooled endpoint. One pool per process; warm serverless instances reuse it.
+    // PostgreSQL via node-postgres (`pg`). In production this is the Supabase
+    // PostgreSQL connection supplied through DATABASE_URL. One small pool is
+    // shared per warm serverless instance.
     const { Pool, types } = await import("pg");
     types.setTypeParser(OID_INT8, Number);
     types.setTypeParser(OID_DATE, identity);
     types.setTypeParser(OID_INTERVAL, identity);
-    const pool = new Pool({ connectionString: databaseUrl });
+    const pool = new Pool({ connectionString: databaseUrl, max: 1 });
     return toSql(async <T>(text: string, params: unknown[]) => {
       const res = await pool.query(text, params);
       return res.rows as T[];
@@ -176,7 +177,7 @@ async function createSql(): Promise<Sql> {
         "or a server route loader, never from client code.",
     );
   }
-  return dbSource === "neon" ? createNeonSql() : createPgliteSql();
+  return dbSource === "neon" ? createPostgresSql() : createPgliteSql();
 }
 
 /**
