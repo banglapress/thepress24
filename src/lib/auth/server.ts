@@ -44,8 +44,8 @@ function normalizePostgresUrl(value: string | undefined): string | undefined {
 }
 
 const databaseUrl = normalizePostgresUrl(
-  env("POSTGRES_PRISMA_URL") ??
   env("POSTGRES_URL") ??
+  env("POSTGRES_PRISMA_URL") ??
   env("POSTGRES_URL_NON_POOLING") ??
   env("DATABASE_URL"));
 const explicitBaseURL = env("BETTER_AUTH_URL");
